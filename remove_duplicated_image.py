@@ -50,27 +50,9 @@ def make_imagehashes(path: str) -> dict:
     return imagehashes, duplicated
 
 
-def remove_duplicated_images(imagehashes: dict, path: str):
+def remove_duplicated_images(imagehashes: dict, path: str, debug: bool):
     """重複画像を削除する
     
-    Args:
-        imagehashes (dict[List]): imagehashの情報{hash: [path1, path2, ...]}
-        path (str): 画像のパス
-
-    Returns:
-        None
-    """
-    dup_hashes = [h for h in imagehashes if len(imagehashes[h]) > 1]
-    for hash in dup_hashes:
-        # if len(imagehashes[hash]) > 2:
-        #     print(hash)
-        for dup_file in imagehashes[hash][1:]:
-            os.remove(dup_file)
-
-
-def debug_check_duplicated_images(imagehashes: dict, path: str):
-    """デバッグ用関数(重複画像を削除せず別フォルダへコピーする))
-
     Args:
         imagehashes (dict[List]): imagehashの情報{hash: [path1, path2, ...]}
         path (str): 画像のパス
@@ -85,6 +67,9 @@ def debug_check_duplicated_images(imagehashes: dict, path: str):
     for hash in dup_hashes:
         for idx, file in enumerate(imagehashes[hash]):
             shutil.copy(file, os.path.join(subdir, f'{hash}_{idx:02}_{os.path.basename(file)}'))
+        if not debug:
+            for dup_file in imagehashes[hash][1:]:
+                os.remove(dup_file)
 
 
 def main():
@@ -97,10 +82,7 @@ def main():
         imagehashes, dup_count = make_imagehashes(root)
         logger.info(f'{dup_count} duplicated images were found in {root}')
         if dup_count > 0:
-            if args.debug:
-                debug_check_duplicated_images(imagehashes, root)
-            else:
-                remove_duplicated_images(imagehashes, root)
+            remove_duplicated_images(imagehashes, root, args.debug)
 
 if __name__ == '__main__':
     main()
