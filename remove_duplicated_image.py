@@ -31,28 +31,28 @@ def make_imagehashes(path: str) -> dict:
     """
     if os.path.split(path)[-1] == 'duplicated':
         return None, 0
-    imagehashes = defaultdict(list)
+    hashes = defaultdict(list)
     duplicated = 0
     for file in tqdm.tqdm(os.listdir(path)):
         if file.lower().endswith(('.png', '.jpg', '.jpeg')):
             try:
                 image = Image.open(os.path.join(path, file))
-                hash = str(imagehash.average_hash(image))
-                if hash not in imagehashes:
-                    imagehashes[hash].append(os.path.join(path, file))
+                img_hash = str(imagehash.average_hash(image))
+                if img_hash not in hashes:
+                    hashes[img_hash].append(os.path.join(path, file))
                 else:
                     logger.debug(f'Duplicated image: {os.path.join(path, file)}')
                     duplicated += 1
-                    imagehashes[hash].append(os.path.join(path, file))
+                    hashes[img_hash].append(os.path.join(path, file))
             except OSError:
                 logger.info(f'Failed to open {os.path.join(path, file)}')
   
-    return imagehashes, duplicated
+    return hashes, duplicated
 
 
 def remove_duplicated_images(imagehashes: dict, path: str, debug: bool):
     """重複画像を削除する
-    
+
     Args:
         imagehashes (dict[List]): imagehashの情報{hash: [path1, path2, ...]}
         path (str): 画像のパス
@@ -64,11 +64,11 @@ def remove_duplicated_images(imagehashes: dict, path: str, debug: bool):
     os.makedirs(subdir, exist_ok=True)
 
     dup_hashes = [h for h in imagehashes if len(imagehashes[h]) > 1]
-    for hash in dup_hashes:
-        for idx, file in enumerate(imagehashes[hash]):
-            shutil.copy(file, os.path.join(subdir, f'{hash}_{idx:02}_{os.path.basename(file)}'))
+    for img_hash in dup_hashes:
+        for idx, file in enumerate(imagehashes[img_hash]):
+            shutil.copy(file, os.path.join(subdir, f'{img_hash}_{idx:02}_{os.path.basename(file)}'))
         if not debug:
-            for dup_file in imagehashes[hash][1:]:
+            for dup_file in imagehashes[img_hash][1:]:
                 os.remove(dup_file)
 
 
@@ -78,7 +78,7 @@ def main():
     parser.add_argument('root_dir', help='Path to image files.')
     parser.add_argument('--debug', help='Debug mode(just copy to subdir)', default=False, action='store_true')
     args = parser.parse_args()
-    for root, dirs, files in os.walk(args.root_dir):
+    for root, _dirs, _files in os.walk(args.root_dir):
         imagehashes, dup_count = make_imagehashes(root)
         logger.info(f'{dup_count} duplicated images were found in {root}')
         if dup_count > 0:
